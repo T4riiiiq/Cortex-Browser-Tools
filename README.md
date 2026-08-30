@@ -1,75 +1,95 @@
 # Cortex Browser Tools
 
-سكربتان لجمع معلومات المتصفحات على Windows أثناء أعمال الـDFIR والاستجابة للحوادث، ومجهزان للعمل محليًا أو من خلال **Cortex XDR Endpoint Scripts**.
+Two Windows browser collection scripts designed for DFIR and incident-response investigations. They can be executed locally or through **Cortex XDR Endpoint Scripts**.
 
-## السكربتات
+## Included Scripts
 
-- `browser_History.py`: يجمع سجل التصفح، التنزيلات، كلمات البحث المحفوظة، العلامات المرجعية وبيانات الجلسات من Chrome وEdge وBrave وFirefox.
-- `browser_extensions.py`: يحصر إضافات المتصفحات ويعرض صلاحياتها، مع تمييز الصلاحيات المهمة أمنيًا.
+- `browser_History.py` collects browser history, downloads, stored search terms, bookmarks, and session metadata from Chrome, Edge, Brave, and Firefox.
+- `browser_extensions.py` inventories installed browser extensions, their versions, locations, and permissions. It also highlights security-relevant permissions.
 
-> السكربتات لا تجمع كلمات المرور أو بيانات الدفع، وتستخدم مكتبات Python القياسية فقط.
+> These scripts do not collect passwords, payment information, or decrypted cookies. They use Python standard-library modules only.
 
-## التشغيل محليًا
+## Run Locally
 
-المتطلبات:
+Requirements:
 
 - Windows
-- Python 3.7 أو أحدث
-- يفضّل تشغيل PowerShell كمسؤول حتى يستطيع السكربت قراءة ملفات جميع المستخدمين.
+- Python 3.7 or newer
+- Administrator privileges are recommended when scanning profiles belonging to multiple users.
 
-نزّل المستودع ثم افتح PowerShell داخله:
+Clone the repository and open PowerShell inside it:
 
 ```powershell
 git clone https://github.com/T4riiiiq/Cortex-Browser-Tools.git
 cd Cortex-Browser-Tools
 ```
 
-لجمع سجل المتصفحات:
+Collect browser activity:
 
 ```powershell
 python .\browser_History.py
 ```
 
-لجمع إضافات المتصفحات:
+Collect installed browser extensions:
 
 ```powershell
 python .\browser_extensions.py
 ```
 
-بعد انتهاء التشغيل سيظهر JSON يحتوي على `output_path`. هذا هو مسار ملف ZIP النهائي، وغالبًا يكون داخل مجلد Windows المؤقت `%TEMP%`.
+When a script finishes, it prints a JSON result containing `output_path`. This is the location of the generated ZIP file, which is normally stored in the Windows temporary directory (`%TEMP%`).
 
-## التشغيل من Cortex XDR
+## Run Through Cortex XDR
 
-لكل سكربت:
+Repeat these steps for each script:
 
-1. افتح **Cortex XDR → Action Center → Scripts Library → New Script**.
-2. ارفع ملف Python المطلوب.
-3. اختر **Windows** كمنصة التشغيل.
-4. اختر التشغيل بواسطة **Entry Point** واكتب `main`.
-5. لا تضف Parameters.
-6. اختر **Dictionary** لنوع المخرجات.
-7. ابدأ بمهلة تشغيل قدرها `900` ثانية.
-8. شغّل السكربت أولًا على جهاز تجريبي واحد.
-9. بعد اكتماله، افتح نتيجة التنفيذ ونزّل الملف الموجود في `files_to_get`.
+1. Open **Cortex XDR → Action Center → Scripts Library → New Script**.
+2. Upload the required Python file.
+3. Select **Windows** as the platform.
+4. Select **Run by entry point** and use `main` as the entry point.
+5. Do not add any parameters.
+6. Select **Dictionary** as the output type.
+7. Start with a timeout of `900` seconds.
+8. Run the script on one test endpoint first.
+9. Open the execution result and download the ZIP listed under `files_to_get`.
 
-## قراءة النتائج
+## Review Browser-History Results
 
-### نتائج `browser_History.py`
+Start with these files inside the ZIP produced by `browser_History.py`:
 
-ابدأ بهذه الملفات داخل ZIP:
+- `summary.txt` — quick collection summary and record counts.
+- `profile_inventory.csv` — discovered browsers and profiles.
+- `artifact_status.csv` — collection and parsing status for each artifact.
+- `errors.csv` — details of any collection failures.
 
-- `summary.txt`: ملخص سريع للأعداد والأخطاء.
-- `profile_inventory.csv`: المتصفحات والبروفايلات التي تم اكتشافها.
-- `artifact_status.csv`: حالة جمع كل نوع من البيانات.
-- `errors.csv`: تفاصيل أي فشل أثناء الجمع.
+Investigation data is stored in files such as:
 
-ثم راجع ملفات التحقيق مثل `history.csv` و`downloads.csv` و`search_terms.csv` و`bookmarks.csv` و`sessions.csv`.
+- `history.csv`
+- `downloads.csv`
+- `search_terms.csv`
+- `bookmarks.csv`
+- `sessions.csv`
 
-### نتائج `browser_extensions.py`
+## Review Browser-Extension Results
 
-ملف ZIP يحتوي على CSV بأسماء الإضافات وإصداراتها ومساراتها وصلاحياتها. راجع خصوصًا الإضافات التي تحتوي على صلاحيات مهمة أمنيًا مثل `debugger` أو `nativeMessaging` أو `proxy` أو الوصول الواسع للمواقع.
+The ZIP produced by `browser_extensions.py` contains a CSV inventory of installed extensions. Review extensions with powerful permissions such as:
 
-## اختبار سريع قبل الاستخدام الواسع
+- `debugger`
+- `nativeMessaging`
+- `proxy`
+- `cookies`
+- `webRequest`
+- `<all_urls>`
 
-شغّل كل سكربت على جهاز واحد أولًا، وتأكد أن ZIP تم تنزيله وأن ملفات CSV تحتوي على بيانات فعلية. بعد ذلك اختبره والمتصفح مفتوح، ثم وسّع التشغيل تدريجيًا على أجهزة أخرى.
+A flagged permission does not automatically mean that an extension is malicious. It indicates that the extension deserves additional review.
+
+## Recommended First Test
+
+Run each script on one endpoint before deploying it widely. Confirm that:
+
+1. Cortex successfully retrieves the ZIP file.
+2. The CSV files contain real data.
+3. `artifact_status.csv` does not report unexpected `copy_failed` or `parse_failed` entries.
+4. The scripts also work while the browsers are open.
+
+After a successful test, expand deployment gradually to a small group of endpoints.
 
